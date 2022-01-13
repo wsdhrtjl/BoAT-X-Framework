@@ -5,7 +5,18 @@
 + PlatON Enterprise (PlatONE)
 + FISCO-BCOS
 + Hyperledger Fabric
++ Huawei BCS (华为链)
++ Chainmaker
 
+### Blockchain Official Websites
++ [Ethereum](https://ethereum.org/)
++ [Ganache: an Ethereum Simulator](https://www.trufflesuite.com/truffle/)
++ [PlatON](https://www.platon.network/)
++ [PlatON Enterprise](https://github.com/PlatONEnterprise/)
++ [FISCO BCOS](http://fisco-bcos.org/)
++ [FISCO BCOS Github](https://github.com/FISCO-BCOS)
++ [Hyperledger Fabric](https://www.hyperledger.org/use/fabric)
++ [Hyperledger Fabric Docs](https://hyperledger-fabric.readthedocs.io/)
 
 # Supported Module List
 
@@ -35,6 +46,6 @@ MN316                     |中移物联 China Mobile|NB-IoT            |Xinyi XY
 BeagleV-StarLight星光     |seeed, StarFive and beagleboard|Ethernet|StarFive JH7100      |BeagleV-StarLight星光 is a development board
 
 
-*Last update on June 29th, 2021*
+*Last update on September 18th, 2021*
 
 NOTE: Some of the blockchains are not supported on some modules due to resource constraint.

@@ -90,6 +90,19 @@ typedef struct TBoatPlatoneTx
     BoatPlatoneRawtxFields rawtx_fields;      //!< RAW transaction fields
 }BoatPlatoneTx;
 
+typedef struct T_wbe3_nodeInfo
+{
+    char * IP;
+    BUINT32 rpcPort;
+    
+}wbe3_nodeInfo;
+
+typedef struct T_nodesResult
+{
+    BUINT8 num;
+    wbe3_nodeInfo *nodeInfo;
+}nodesResult;
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -204,6 +217,23 @@ BOAT_RESULT BoatPlatoneTxSetTxtype(BoatPlatoneTx *tx_ptr, BoatPlatoneTxtype txty
  ******************************************************************************/
 BCHAR *BoatPlatoneCallContractFunc(BoatPlatoneTx *tx_ptr, BUINT8 *rlp_param_ptr, BUINT32 rlp_param_len);
 
+/*!****************************************************************************
+ * @brief Construct a raw PlatONE transaction synchronously.
+ *
+ * @details
+ *   This function is similar to PlatoneSendRawtx except that it waits for the
+ *   transaction being mined.
+ *	 
+ * @param[in] tx_ptr
+ *   A pointer to the context of the transaction.
+ *
+ * @return
+ *   This function returns BOAT_SUCCESS if successful. Otherwise it returns one\n
+ *   of the error codes.
+ *	 
+ * @see PlatoneSendRawtx()
+ ******************************************************************************/
+BOAT_RESULT BoatPlatoneSendRawtxWithReceipt(BOAT_INOUT BoatPlatoneTx *tx_ptr);
 
 /*!****************************************************************************
  * @brief Sign and send a transaction. Also call a stateful contract function.
@@ -405,16 +435,27 @@ __BOATSTATIC __BOATINLINE BOAT_RESULT BoatPlatoneGetTransactionReceipt(BoatPlato
 
 /*!****************************************************************************
  * @brief Prase RPC method RESPONSE.
- * @see BoatEthPraseRpcResponseResult()
+ * @see web3_parse_json_result()
  ******************************************************************************/
-__BOATSTATIC __BOATINLINE BOAT_RESULT BoatPlatonePraseRpcResponseResult(const BCHAR *json_string, 
-                                                                        const BCHAR *child_name, 
-                                                                        BoatFieldVariable *result_out)
-{
-    return BoatEthPraseRpcResponseResult(json_string, child_name, result_out);
-}
+BOAT_RESULT BoatPlatonePraseRpcResponseStringResult(const BCHAR *json_string, BoatFieldVariable *result_out);
+
+/*!****************************************************************************
+ * @brief Prase RPC method RESPONSE.
+ * @see web3_parse_json_result()
+ ******************************************************************************/
+BOAT_RESULT BoatPlatonePraseRpcResponseResult(const BCHAR *json_string, 
+                                              const BCHAR *child_name, 
+                                              BoatFieldVariable *result_out);
+
+/*!****************************************************************************
+ * @brief Get Nodes Info e.g. IP/Port.
+ * @see BoatPlatoneGetNodesInfo()
+ ******************************************************************************/
+BCHAR * BoatPlatoneGetNodesInfo(BoatPlatoneTx *tx_ptr,nodesResult *result_out);
 
 /*! @}*/
+
+void nodeResFree(nodesResult *result_out);
 
 #ifdef __cplusplus
 }

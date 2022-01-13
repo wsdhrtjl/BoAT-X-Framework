@@ -6,14 +6,17 @@ BOAT_BUILD_DIR := $(BOAT_BASE_DIR)/build
 
 # Set chain support
 # Set to 1 to enable releated chain, to 0 to disable
-BOAT_PROTOCOL_USE_ETHEREUM  ?= 1
-BOAT_PROTOCOL_USE_PLATON    ?= 1
-BOAT_PROTOCOL_USE_PLATONE   ?= 1
-BOAT_PROTOCOL_USE_FISCOBCOS ?= 1
-BOAT_PROTOCOL_USE_HLFABRIC  ?= 1
+BOAT_PROTOCOL_USE_ETHEREUM   ?= 1
+BOAT_PROTOCOL_USE_PLATON     ?= 1
+BOAT_PROTOCOL_USE_PLATONE    ?= 1
+BOAT_PROTOCOL_USE_FISCOBCOS  ?= 1
+BOAT_PROTOCOL_USE_HLFABRIC   ?= 1
+BOAT_PROTOCOL_USE_HWBCS      ?= 1
+BOAT_PROTOCOL_USE_CHAINMAKER ?= 1
+BOAT_DISCOVERY_PEER_QUERY    ?= 1
 
 # Chain config check
-ifeq ($(BOAT_PROTOCOL_USE_ETHEREUM)_$(BOAT_PROTOCOL_USE_PLATON)_$(BOAT_PROTOCOL_USE_PLATONE)_$(BOAT_PROTOCOL_USE_FISCOBCOS)_$(BOAT_PROTOCOL_USE_HLFABRIC), 0_0_0_0_0)
+ifeq ($(BOAT_PROTOCOL_USE_ETHEREUM)_$(BOAT_PROTOCOL_USE_PLATON)_$(BOAT_PROTOCOL_USE_PLATONE)_$(BOAT_PROTOCOL_USE_FISCOBCOS)_$(BOAT_PROTOCOL_USE_HLFABRIC)_$(BOAT_PROTOCOL_USE_HWBCS)_$(BOAT_PROTOCOL_USE_CHAINMAKER), 0_0_0_0_0_0_0)
     $(error Select at least one chain)
 endif
 ifeq ($(BOAT_PROTOCOL_USE_ETHEREUM)_$(BOAT_PROTOCOL_USE_FISCOBCOS), 0_1)
@@ -25,24 +28,32 @@ endif
 ifeq ($(BOAT_PROTOCOL_USE_ETHEREUM)_$(BOAT_PROTOCOL_USE_PLATONE), 0_1)
     $(error PLATONE depends on ETHEREUM, set 'BOAT_PROTOCOL_USE_ETHEREUM' to 1 if enable PLATONE)
 endif
+ifeq ($(BOAT_PROTOCOL_USE_HLFABRIC)_$(BOAT_PROTOCOL_USE_HWBCS), 0_1)
+    $(error HWBCS depends on FABRIC, set 'BOAT_PROTOCOL_USE_HLFABRIC' to 1 if enable HWBCS)
+endif
+
 
 # Set parameter to scripts
 SCRIPTS_PARAM += "BOAT_PROTOCOL_USE_ETHEREUM=$(BOAT_PROTOCOL_USE_ETHEREUM)" \
                  "BOAT_PROTOCOL_USE_PLATON=$(BOAT_PROTOCOL_USE_PLATON)" \
                  "BOAT_PROTOCOL_USE_PLATONE=$(BOAT_PROTOCOL_USE_PLATONE)" \
                  "BOAT_PROTOCOL_USE_FISCOBCOS=$(BOAT_PROTOCOL_USE_FISCOBCOS)" \
-                 "BOAT_PROTOCOL_USE_HLFABRIC=$(BOAT_PROTOCOL_USE_HLFABRIC)"
+                 "BOAT_PROTOCOL_USE_HLFABRIC=$(BOAT_PROTOCOL_USE_HLFABRIC)" \
+                 "BOAT_PROTOCOL_USE_HWBCS=$(BOAT_PROTOCOL_USE_HWBCS)" \
+		         "BOAT_PROTOCOL_USE_CHAINMAKER=$(BOAT_PROTOCOL_USE_CHAINMAKER)" \
+                 "BOAT_DISCOVERY_PEER_QUERY=$(BOAT_DISCOVERY_PEER_QUERY)" 
 
 
 # Platform target
 # The valid option value of PLATFORM_TARGET list as below:
 # - linux-default             : Default linux platform
 # - Fibocom-L610              : Fibocom's LTE Cat.1 module
-# - Fibocom-L718              : Fibocom's LTE Cat.4 module
 # - Quectel-BG95              : Quectel's NB-IoT/GSM module
 # - Neoway-N58                : Neoway's LTE Cat.1 module
 # - YanFei-CUIot-MZ-6         : China Unicom's LTE Cat.1 module
 # - ChinaMobile-ML302         : China Mobile's LTE Cat.1 module
+# - MTK-MT3620                : MTK MT3620
+# - XinYi-XY1100              : XY1100
 PLATFORM_TARGET ?= linux-default
 
 # Environment-specific Settings
@@ -81,7 +92,10 @@ BOAT_INCLUDE :=   -I$(BOAT_BASE_DIR)/include \
                   -I$(BOAT_SDK_DIR)/protocol/common/http2intf \
                   -I$(BOAT_SDK_DIR)/protocol/common/web3intf \
 				  -I$(BOAT_SDK_DIR)/protocol/boathlfabric \
+                  -I$(BOAT_SDK_DIR)/protocol/boathwbcs \
                   -I$(BOAT_SDK_DIR)/protocol/boathlfabric/protos \
+                  -I$(BOAT_SDK_DIR)/protocol/boathwbcs/protos \
+		          -I$(BOAT_SDK_DIR)/protocol/boatchainmaker/protos \
 				  -I$(BOAT_SDK_DIR)/protocol/boatethereum \
                   -I$(BOAT_SDK_DIR)/protocol/boatplaton \
 				  -I$(BOAT_SDK_DIR)/protocol/boatplatone \
@@ -110,7 +124,7 @@ ifeq ($(COMPILER_TYPE), "ARM")
     TARGET_SPEC_LIBS := 
     TARGET_SPEC_LINK_FLAGS :=
 else ifeq ($(COMPILER_TYPE), "LINUX")
-    TARGET_SPEC_CFLAGS := -ffunction-sections -fdata-sections
+    TARGET_SPEC_CFLAGS := -ffunction-sections -fdata-sections 
     TARGET_SPEC_LIBS := 
     TARGET_SPEC_LINK_FLAGS := -Wl,-gc-sections
 else ifeq ($(COMPILER_TYPE), "CYGWIN")
@@ -127,7 +141,37 @@ endif
 # The valid option value of SOFT_CRYPTO list as below:
 # - CRYPTO_DEFAULT      : default soft crypto algorithm
 # - CRYPTO_MBEDTLS      : mbedtls crypto algorithm
-SOFT_CRYPTO ?= CRYPTO_DEFAULT
+# SOFT_CRYPTO ?= CRYPTO_MBEDTLS
+
+ifeq ($(PLATFORM_TARGET), linux-default)
+    SOFT_CRYPTO ?= CRYPTO_MBEDTLS
+else ifeq ($(PLATFORM_TARGET), Fibocom-L610) 
+    SOFT_CRYPTO ?= CRYPTO_DEFAULT
+else ifeq ($(PLATFORM_TARGET), Quectel-BG95) 
+    SOFT_CRYPTO ?= CRYPTO_MBEDTLS
+else ifeq ($(PLATFORM_TARGET), Neoway-N58) 
+    SOFT_CRYPTO ?= CRYPTO_DEFAULT
+else ifeq ($(PLATFORM_TARGET), YanFei-CUIot-MZ-6) 
+    SOFT_CRYPTO ?= CRYPTO_DEFAULT
+else ifeq ($(PLATFORM_TARGET), ChinaMobile-ML302) 
+    SOFT_CRYPTO ?= CRYPTO_DEFAULT
+else ifeq ($(PLATFORM_TARGET), XinYi-XY1100) 
+    SOFT_CRYPTO ?= CRYPTO_MBEDTLS
+else ifeq ($(PLATFORM_TARGET), MTK-MT3620) 
+    SOFT_CRYPTO ?= CRYPTO_DEFAULT
+else
+    $(error not support this platform : $(PLATFORM_TARGET))
+endif
+
+
+ifeq ($(SOFT_CRYPTO), CRYPTO_DEFAULT)
+    ifeq ($(BOAT_PROTOCOL_USE_HLFABRIC), 1)
+    $(error $(PLATFORM_TARGET) not support fabric)
+    endif
+    ifeq ($(BOAT_PROTOCOL_USE_HWBCS), 1)
+    $(error $(PLATFORM_TARGET) not support HWBCS)
+    endif
+endif
 
 ifeq ($(SOFT_CRYPTO), CRYPTO_DEFAULT)
     BOAT_INCLUDE += -I$(BOAT_BASE_DIR)/vendor/common/crypto/crypto_default \
@@ -146,12 +190,17 @@ endif
 #
 # - CJSON_DEFAULT : default cJSON library
 # - CJSON_OUTTER  : externally provided by users
-CJSON_LIBRARY ?= CJSON_OUTTER
+CJSON_LIBRARY ?= CJSON_DEFAULT
 
 ifeq ($(CJSON_LIBRARY), CJSON_DEFAULT)
     BOAT_INCLUDE += -I$(BOAT_SDK_DIR)/third-party/cJSON
 endif
 
+ 
+ifeq ($(BOAT_TEST), TEST_MODE)
+BOAT_TEST_FLAG = -fprofile-arcs\
+                 -ftest-coverage
+endif
 # Combine FLAGS
 BOAT_CFLAGS := $(TARGET_SPEC_CFLAGS) \
                $(BOAT_INCLUDE) \
@@ -159,7 +208,8 @@ BOAT_CFLAGS := $(TARGET_SPEC_CFLAGS) \
                $(BOAT_OPTIMIZATION_FLAGS) \
                $(BOAT_WARNING_FLAGS) \
                $(BOAT_DEFINED_MACROS) \
-               $(EXTERNAL_CFLAGS) 
+               $(EXTERNAL_CFLAGS) \
+               $(BOAT_TEST_FLAG)
 
 BOAT_LFLAGS := $(BOAT_COMMON_LINK_FLAGS) $(TARGET_SPEC_LINK_FLAGS)
 LINK_LIBS := $(EXTERNAL_LIBS) $(TARGET_SPEC_LIBS)
@@ -169,7 +219,11 @@ export BOAT_PROTOCOL_USE_PLATON
 export BOAT_PROTOCOL_USE_PLATONE
 export BOAT_PROTOCOL_USE_FISCOBCOS
 export BOAT_PROTOCOL_USE_HLFABRIC
+export BOAT_PROTOCOL_USE_HWBCS
+export BOAT_PROTOCOL_USE_CHAINMAKER
+export BOAT_DISCOVERY_PEER_QUERY
 export BOAT_USE_DEFAULT_CJSON
+
 
 export SOFT_CRYPTO
 export CJSON_LIBRARY

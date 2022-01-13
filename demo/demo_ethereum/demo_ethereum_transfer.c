@@ -46,7 +46,9 @@ const BCHAR *native_demoKey = "0xfcf6d76706e66250dbacc9827bc427321edb9542d58a74a
 /**
  * test node url
  */
-const BCHAR *demoUrl = "http://192.168.132.200:7545";
+
+const BCHAR * demoUrl = "http://192.168.132.190:7545";
+
 
 /**
  * transfer recipient address
@@ -96,10 +98,10 @@ __BOATSTATIC BOAT_RESULT ethereum_createOnetimeWallet()
 
 	/* create ethereum wallet */
     index = BoatWalletCreate(BOAT_PROTOCOL_ETHEREUM, NULL, &wallet_config, sizeof(BoatEthWalletConfig));
-    if (index == BOAT_ERROR)
+    if (index < BOAT_SUCCESS)
 	{
         //BoatLog(BOAT_LOG_CRITICAL, "create one-time wallet failed.");
-        return BOAT_ERROR;
+        return BOAT_ERROR_WALLET_CREATE_FAIL;
     }
     g_ethereum_wallet_ptr = BoatGetWalletByIndex(index);
     
@@ -148,10 +150,10 @@ __BOATSTATIC BOAT_RESULT ethereum_createPersistWallet(BCHAR *wallet_name)
 
 	/* create ethereum wallet */
     index = BoatWalletCreate(BOAT_PROTOCOL_ETHEREUM, wallet_name, &wallet_config, sizeof(BoatEthWalletConfig));
-    if (index == BOAT_ERROR)
+    if (index < BOAT_SUCCESS)
 	{
         //BoatLog(BOAT_LOG_CRITICAL, "create persist wallet failed.");
-        return BOAT_ERROR;
+        return BOAT_ERROR_WALLET_CREATE_FAIL;
     }
 
     g_ethereum_wallet_ptr = BoatGetWalletByIndex(index);
@@ -167,10 +169,10 @@ __BOATSTATIC BOAT_RESULT ethereum_loadPersistWallet(BCHAR *wallet_name)
 
 	/* create ethereum wallet */
     index = BoatWalletCreate(BOAT_PROTOCOL_ETHEREUM, wallet_name, NULL, sizeof(BoatEthWalletConfig));
-    if (index == BOAT_ERROR)
+    if (index < BOAT_SUCCESS)
 	{
         //BoatLog(BOAT_LOG_CRITICAL, "load wallet failed.");
-        return BOAT_ERROR;
+        return BOAT_ERROR_WALLET_CREATE_FAIL;
     }
     g_ethereum_wallet_ptr = BoatGetWalletByIndex(index);
 
@@ -180,23 +182,26 @@ __BOATSTATIC BOAT_RESULT ethereum_loadPersistWallet(BCHAR *wallet_name)
 
 BOAT_RESULT ethereumGetBalance(BoatEthWallet *wallet_ptr)
 {
-    //BCHAR * balance_wei;
-    BCHAR * cur_balance_wei = NULL;
+    //BCHAR *balance_wei;
+    BCHAR *cur_balance_wei = NULL;
     BOAT_RESULT result;
     BoatFieldVariable prase_result = {NULL, 0};
 
     cur_balance_wei = BoatEthWalletGetBalance(wallet_ptr, NULL);
-	result          = BoatEthPraseRpcResponseResult(cur_balance_wei, "", &prase_result);
+	result          = BoatEthPraseRpcResponseStringResult(cur_balance_wei, &prase_result);
+    //BoatLog(BOAT_LOG_NORMAL, "Balance: %s wei", prase_result.field_ptr);
+    if(prase_result.field_ptr != NULL){
+        BoatFree(prase_result.field_ptr);
+    }
 	if (result == BOAT_SUCCESS)
 	{
 		//BoatLog(BOAT_LOG_NORMAL, "BoatEthWalletGetBalance returns: %s", prase_result.field_ptr);
 	}
 	else
 	{
-		return BOAT_ERROR;
+		return result;
 	}
 
-    //BoatLog(BOAT_LOG_NORMAL, "Balance: %s wei", prase_result.field_ptr);
 
     return BOAT_SUCCESS;
 }
@@ -210,12 +215,12 @@ BOAT_RESULT ethereumTransfer(BoatEthWallet *wallet_ptr)
     /* Set Recipient Address */
     result = BoatEthTxInit(wallet_ptr, &tx_ctx, BOAT_TRUE, NULL,
 						   "0x333333",
-						   (BCHAR *)demoRecipientAddress );
+						   (BCHAR *)demoRecipientAddress);
 
     if (result != BOAT_SUCCESS)
     {
         //BoatLog(BOAT_LOG_CRITICAL, "BoatEthTxInit failed.");
-        return BOAT_ERROR;
+        return BOAT_ERROR_WALLET_INIT_FAIL;
     }
     
 	/* 0xDE0B6B3A7640000: 1ETH or 1e18 wei, value */
@@ -228,7 +233,7 @@ BOAT_RESULT ethereumTransfer(BoatEthWallet *wallet_ptr)
 int main(int argc, char *argv[])
 {
 	BOAT_RESULT result = BOAT_SUCCESS;
-	
+	boat_try_declare;
 	/* step-1: Boat SDK initialization */
     BoatIotSdkInit();
     
@@ -244,12 +249,14 @@ int main(int argc, char *argv[])
 	result = ethereum_loadPersistWallet("eth.cfg");
 #else
 	//BoatLog(BOAT_LOG_NORMAL, ">>>>>>>>>> none wallet type selected.");
-	return -1;
+	//return -1;
+    result = BOAT_ERROR;
 #endif	
     if (result != BOAT_SUCCESS)
 	{
 		 //BoatLog(BOAT_LOG_CRITICAL, "ethereumWalletPrepare_create failed : %d.", result);
-		return -1;
+		//return -1;
+        boat_throw(result, ethereum_trans_demo_catch);
 	}
     
 	/* step-3: execute balance transfer */
@@ -257,12 +264,14 @@ int main(int argc, char *argv[])
     if (result != BOAT_SUCCESS)
 	{
         //BoatLog(BOAT_LOG_NORMAL, "ethereumGetBalance Failed: %d.", result);
+        boat_throw(result, ethereum_trans_demo_catch);
     }
 	result = ethereumTransfer(g_ethereum_wallet_ptr);
     
     if (result != BOAT_SUCCESS)
 	{
         //BoatLog(BOAT_LOG_NORMAL, "ethereumTransfer Failed: %d.", result);
+        boat_throw(result, ethereum_trans_demo_catch);
     }
 	result = ethereumGetBalance(g_ethereum_wallet_ptr);
     
@@ -275,8 +284,11 @@ int main(int argc, char *argv[])
         //BoatLog(BOAT_LOG_NORMAL, "CaseEthereum Passed.");
     }
 	
+    boat_catch(ethereum_trans_demo_catch)
+    {
+    }	
 	/* step-4: Boat SDK Deinitialization */
     BoatIotSdkDeInit();
     
-    return 0;
+    return result;
 }

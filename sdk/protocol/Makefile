@@ -4,9 +4,9 @@ SOURCES = $(wildcard *.c)
 OBJECTS_DIR = $(BOAT_BUILD_DIR)/sdk/protocol
 OBJECTS = $(patsubst %.c,$(OBJECTS_DIR)/%.o,$(SOURCES))
 
-.PHONY: all rotocol_common protocol_ethereum protocol_platon protocol_platone protocol_fiscobcos protocol_hlfabric
+.PHONY: all rotocol_common protocol_ethereum protocol_platon protocol_platone protocol_fiscobcos protocol_hlfabric protocol_hw_bcs protocol_chainmaker
 
-all: protocol_common protocol_ethereum protocol_platon protocol_platone protocol_fiscobcos protocol_hlfabric $(OBJECTS_DIR) $(OBJECTS)
+all: protocol_common protocol_ethereum protocol_platon protocol_platone protocol_fiscobcos protocol_hlfabric protocol_hw_bcs protocol_chainmaker $(OBJECTS_DIR) $(OBJECTS)
 
 
 protocol_common:
@@ -37,6 +37,16 @@ ifeq ($(BOAT_PROTOCOL_USE_HLFABRIC), 1)
 	make -C  boathlfabric all
 endif
 
+protocol_hw_bcs:
+ifeq ($(BOAT_PROTOCOL_USE_HWBCS), 1)
+	make -C  boathwbcs all
+endif
+
+protocol_chainmaker:
+ifeq ($(BOAT_PROTOCOL_USE_CHAINMAKER), 1)
+	make -C  boatchainmaker all
+endif
+
 $(OBJECTS_DIR):
 	$(BOAT_MKDIR) -p $(OBJECTS_DIR)
 
@@ -53,4 +63,10 @@ clean:
 	make -C boatfiscobcos clean
 ifeq ($(BOAT_PROTOCOL_USE_HLFABRIC), 1)	
 	make -C boathlfabric  clean
+endif
+ifeq ($(BOAT_PROTOCOL_USE_HWBCS), 1)	
+	make -C boathwbcs  clean
+endif
+ifeq ($(BOAT_PROTOCOL_USE_CHAINMAKER), 1)
+	make -C boatchainmaker clean
 endif
